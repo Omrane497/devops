@@ -1,0 +1,41 @@
+---
+- name: Deploy Flask application from developer repo
+  hosts: localhost
+  connection: local
+
+  vars:
+    repo_url: "https://github.com/Omrane497/developer.git"
+    app_dir: "{{ ansible_env.HOME }}/flask-app"
+
+  tasks:
+    - name: Pull latest code from developer repo
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
+        version: main
+        force: true
+
+    - name: Create virtual environment and install requirements
+      ansible.builtin.pip:
+        requirements: "{{ app_dir }}/requirements.txt"
+        virtualenv: "{{ app_dir }}/venv"
+        virtualenv_command: "python3 -m venv"
+
+    - name: Stop old app if it is running
+      ansible.builtin.command: pkill -f "{{ app_dir }}/app.py"
+      register: stop_result
+      failed_when: false
+      changed_when: stop_result.rc == 0
+
+    - name: Start the app in background
+      ansible.builtin.shell: "setsid nohup {{ app_dir }}/venv/bin/python3 {{ app_dir }}/app.py > {{ app_dir }}/app.log 2>&1 < /dev/null &"
+
+    - name: Wait until port 5000 is open
+      ansible.builtin.wait_for:
+        port: 5000
+        timeout: 20
+
+    - name: Check the health URL
+      ansible.builtin.uri:
+        url: http://localhost:5000/health
+        status_code: 200
