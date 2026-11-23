@@ -1,7 +1,7 @@
+
 ---
-- name: Deploy Flask application from developer repo
-  hosts: localhost
-  connection: local
+- name: Deploy Flask application to Ubuntu server
+  hosts: app_servers
 
   vars:
     repo_url: "https://github.com/Omrane497/developer.git"
@@ -39,3 +39,4 @@
       ansible.builtin.uri:
         url: http://localhost:5000/health
         status_code: 200
+
